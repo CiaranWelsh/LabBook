@@ -1,0 +1,13 @@
+\BOOKMARK [1][-]{section.1}{LabBook}{}% 1
+\BOOKMARK [1][-]{section.2}{Linux Commands \(Ubuntu\)}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Find a library on the system}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Building on linux}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Linking static libraries into shared}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.4}{Inspective broken builds}{section.2}% 6
+\BOOKMARK [1][-]{section.3}{CMake}{}% 7
+\BOOKMARK [2][-]{subsection.3.1}{Copy or install a file}{section.3}% 8
+\BOOKMARK [2][-]{subsection.3.2}{Docker}{section.3}% 9
+\BOOKMARK [1][-]{section.4}{What is the difference between msys and mingw?}{}% 10
+\BOOKMARK [2][-]{subsection.4.1}{Git commands}{section.4}% 11
+\BOOKMARK [3][-]{subsubsection.4.1.1}{Submodule}{subsection.4.1}% 12
+\BOOKMARK [1][-]{section.5}{Cross platform CMake}{}% 13

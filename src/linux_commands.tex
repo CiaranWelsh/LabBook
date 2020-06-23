@@ -1,0 +1,111 @@
+\documentclass[../LabBook]{subfiles}
+
+% Document
+\begin{document}
+    \section{Linux Commands (Ubuntu)}
+
+    \subsection{Find a library on the system}
+    There seems to be multiple ways to do this, and sometimes one command works over another, not sure why.
+
+    \begin{minted}{bash}
+        \$ ldconfig -p | grep "name-of-lib"
+    \end{minted}
+    \begin{minted}{bash}
+        \$ dpkg -L "name-of-lib"
+    \end{minted}
+
+    Requires installing apt-file
+    \begin{minted}{bash}
+        \$ apt-file search "name-of-lib
+    \end{minted}
+
+    ldd - print shared object dependencies. Very useful for debugging missing shared libraries.
+    \begin{minted}{bash}
+        \$ ldd \$(which curl)
+    \end{minted}
+
+    Can also try grep with ls -R
+    \begin{minted}{bash}
+        \$ ls -R | grep file
+    \end{minted}
+
+    Then there is find
+    \begin{minted}{bash}
+        \$ find . -name "*sql*"
+    \end{minted}
+
+    \subsection{Building on linux}
+
+    \subsection{Linking static libraries into shared}
+    When passing arguments to the linker you need to ensure you use the `-Wl,--whole-archive' and
+    `-Wl,--no-whole-archive' option. Wrap these around static libraries that you are tyring
+    to pull into a shared library.
+
+    \begin{minted}{bash}
+        -Wl,--whole-archive
+        -lxml2
+        -Wl,--no-whole-archive
+    \end{minted}
+
+    This is necessary to tell the linker to pull all the functions from the library into the shared library you are
+    building. Otherwise, only some will be pulled in and you will get a linker error.
+
+    It seems there is also another way \href{https://stackoverflow.com/questions/6578484/telling-gcc-directly-to-link-a-library-statically}{here}
+
+    Use -l: instead of -l. For example -l:libXYZ.a to link with libXYZ.a. Notice the lib written out, as opposed to
+    -lXYZ which would auto expand to libXYZ.
+
+    Note, these commands can be embedded into a CMake script by passing to `TARGET\_LINK\_LIBRARIES'
+
+    \begin{minted}{cmake}
+        TARGET\_LINK\_LIBRARIES(target SHARED -W,l--whole-archive l:xml2 -Wl,no-whole-archive)
+    \end{minted}
+
+    \subsection{Inspective broken builds}
+    Useful commands (linux)
+
+    List all the shared object libraries that libx depends on
+    \begin{minted}{bash}
+        ldd libx.so
+    \end{minted}
+
+    List the symbols in a library, along with their status (found, undefined etc.)
+    \begin{minted}{bash}
+        nm libx.so
+    \end{minted}
+
+    Use the -D option to inspect dynamic symbols only
+    \begin{minted}{bash}
+        nm libx.so
+    \end{minted}
+
+    Pipe output of nm into grep to search for specific function
+    \begin{minted}{bash}
+        nm libx.so | grep somefunction
+    \end{minted}
+
+    You can examine the Rpath on Linux thus:
+    \begin{minted}{bash}
+        readelf -d libsemsim.so
+        readelf -d libsemsim.so
+    \end{minted}
+
+    \section{CMake}
+
+    Note: cmake is now on pip version 3.17. pip install cmake.
+
+    \subsection{Copy or install a file}
+
+    Copy during configuration stage
+    \begin{minted}{bash}
+    file(COPY \${LIBXML2_LIBRARY} DESTINATION \${PYSEMSIM_DIR})
+    \end{minted}
+
+    Copy at install time
+    \begin{minted}{bash}
+            install(FILES \${LIBXML2_LIBRARY}
+            DESTINATION \${PYSEMSIM_DIR})
+    \end{minted}
+
+
+\end{document}
