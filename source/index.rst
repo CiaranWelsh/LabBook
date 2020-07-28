@@ -17,6 +17,7 @@ I keep looking up the same commands over and over again, so here I'll denote som
     Linux/linux.rst
     Windows/windows.rst
     Travis/travis.rst
+    RandomNotes/random_notes.rst
 
 
 
