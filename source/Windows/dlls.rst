@@ -2,12 +2,14 @@
 DLLs
 =====
 
+Lots of information here is from watching a `lecture on YouTube <https://www.youtube.com/watch?v=JPQWQfDhICA>`_
 
 Explicit Linking
 =================
 
 Creating a DLL and loading functions from it
 --------------------------------------------
+.. _dlls:
 
 Here's a little library that can be compiled as a dll:
 
@@ -104,7 +106,7 @@ whats actually inside of a section using the `-rawdata` flag.
 DLL Raw data
 ------------
 
-.. code-block:: powershell
+.. code-block:: PowerShellLexer
 
     dumpbin -rawdata -section:.text Hello.dll
 
@@ -592,6 +594,408 @@ We can check our imports:
 
 Which indicates that we import our GetGreeting function from Hello.lib/Hello.dll.
 
+Exporting from a DLL
+====================
+
+We create a new example to work with.
+
+.. code-block:: C++
+
+    // Numbers.cpp
+    extern "C" int GetOne() {return 1;}
+    extern "C" int GetTwo() {return 2;}
+    extern "C" int GetThree() {return 3;}
+
+Lets compile:
+
+.. code-block:: powershell
+
+    cl -c Numbers.cpp
+
+We have 4 options for exporting these function to make them available for
+
+Export flag command line
+-------------------------
+
+So far we've been using Export.
+
+.. code-block:: powershell
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>link Numbers.obj /NOENTRY /DLL /EXPORT:GetOne /EXPORT:GetTwo /EXPORT:GetThree
+    Microsoft (R) Incremental Linker Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+       Creating library Numbers.lib and object Numbers.exp
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>dumpbin /exports Numbers.dll
+    Microsoft (R) COFF/PE Dumper Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+    Dump of file Numbers.dll
+
+    File Type: DLL
+
+      Section contains the following exports for Numbers.dll
+
+        00000000 characteristics
+        FFFFFFFF time date stamp
+            0.00 version
+               1 ordinal base
+               3 number of functions
+               3 number of names
+
+        ordinal hint RVA      name
+
+              1    0 00001000 GetOne
+              2    1 00001020 GetThree
+              3    2 00001010 GetTwo
+
+      Summary
+
+            1000 .rdata
+            1000 .text
+
+We can also export under alias's.
+
+.. code-block:: powershell
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>link Numbers.obj /NOENTRY /DLL /EXPORT:GetOne /EXPORT:GetTwo /EXPORT:GetThree /EXPORT:GetOnePlusTwo=GetThree
+    Microsoft (R) Incremental Linker Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+       Creating library Numbers.lib and object Numbers.exp
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>dumpbin /exports Numbers.dll
+    Microsoft (R) COFF/PE Dumper Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+    Dump of file Numbers.dll
+
+    File Type: DLL
+
+      Section contains the following exports for Numbers.dll
+
+        00000000 characteristics
+        FFFFFFFF time date stamp
+            0.00 version
+               1 ordinal base
+               4 number of functions
+               4 number of names
+
+        ordinal hint RVA      name
+
+              1    0 00001000 GetOne
+              2    1 00001020 GetOnePlusTwo
+              3    2 00001020 GetThree
+              4    3 00001010 GetTwo
+
+      Summary
+
+            1000 .rdata
+            1000 .text
+
+
+.. note::
+
+    GetOnePlusTwo and GetThree are the same function with a different name. They are at the same
+    memory address.
+
+
+Using a def file
+-----------------
+
+In a new file, Numbers.def, put the following:
+
+.. code-block:: powershell
+
+    LIBRARY Numbers
+    EXPORTS
+            GetOne
+            GetTwo PRIVATE
+            GetOnePlusTwo=GetThree
+
+
+
+
+Now we can link with :
+
+.. code-block:: powershell
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>link Numbers.obj /DLL /NOENTRY /DEF:Numbers.def
+    Microsoft (R) Incremental Linker Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+       Creating library Numbers.lib and object Numbers.exp
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>dumpbin /exports Numbers.lib
+    Microsoft (R) COFF/PE Dumper Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+    Dump of file Numbers.lib
+
+    File Type: LIBRARY
+
+         Exports
+
+           ordinal    name
+
+                      _GetOne
+                      _GetOnePlusTwo
+
+      Summary
+
+              C3 .debug$S
+              14 .idata$2
+              14 .idata$3
+               4 .idata$4
+               4 .idata$5
+               C .idata$6
+
+
+
+
+Inside your code
+----------------
+
+.. _declspec:
+
+Another option is to declare exports inside your code. Take a look at Numbers2.cpp.
+
+.. code-block:: C++
+
+    extern "C" __declspec(dllexport) int GetOne() { return 1;}
+    extern "C" __declspec(dllexport) int GetTwo() { return 2;}
+    extern "C" __declspec(dllexport) int GetThree() { return 3;}
+
+We use __declspec(export) to do that same as what we were previously doing on the command line.
+The
+
+.. code-block:: powershell
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>cl -c Numbers2.cpp
+    Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x86
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+    Numbers2.cpp
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>dumpbin /EXPORTS Numbers2.dll
+    Microsoft (R) COFF/PE Dumper Version 14.26.28806.0
+    Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+    Dump of file Numbers2.dll
+
+    File Type: DLL
+
+      Section contains the following exports for Numbers2.dll
+
+        00000000 characteristics
+        FFFFFFFF time date stamp
+            0.00 version
+               1 ordinal base
+               3 number of functions
+               3 number of names
+
+        ordinal hint RVA      name
+
+              1    0 00001000 GetOne
+              2    1 00001020 GetThree
+              3    2 00001010 GetTwo
+
+      Summary
+
+            1000 .rdata
+            1000 .text
+
+
+
+Declspec export merely tells the compiler to pretend that it got the exports from the
+command line. They do the same job but its more convenient.
+
+Pragma
+------
+
+Pragma directives can also be used to achieve the same, though this is not often used.
+So Numbers3.cpp looks like this.
+
+.. code-block::c++
+
+    extern "C" int GetOne() { return 1;}
+    extern "C" int GetTwo() { return 2;}
+    extern "C" int GetThree() { return 3;}
+
+    #pragma comment(linker, "/export:GetOne")
+    #pragma comment(linker, "/export:GetTwo")
+    #pragma comment(linker, "/export:GetThree")
+
+
+
+What happens when we load a DLL?
+=================================
+
+There are 5 steps, basically:
+
+    1. Find the dll (Hello.dll)
+    2. Map Hello.dll into memory
+    3. Load any DLLs on which Hello.dll depends
+    4. Bind imports from DLLs on which Hello.dll depends
+    5. Call the entry point for Hello.dll to let it initialize itself.
+
+
+Find the DLL
+------------
+
+When we do
+
+.. code-block:: cpp
+
+    HMODULE HelloDll = LoadLibraryExW(L"Hello.dll", nullptr, o);
+
+How does the loader know where to find `Hello.dll`?
+
+If we passed an absolute path to `LoadLibraryExW`, this is easy as if its
+there it'll be loaded, if not it'll fail. Note, you can load the same library
+into the same script from two different drives (C Vs D), but not two
+libraries with the same name from the same drive.
+
+If its not an absolute path then the first thing that happens is the loader
+will look to see whether the dll is a system dll. These are always loaded
+from the same place for security. These are well known to the OS and the same
+version of the library will always be loaded. For instance, kernel32.dll or
+ole32.dll. This mechanism prevents dll hijacking.
+
+If the dll is not in this small list of libraries, the loader will continue with
+the search process. This is the search process:
+
+    1. The directory from which the application is loaded
+    2. The system directoy (C:\Windows\System32\ or C\:Windows\SysWOW64\)
+    3. The 16-bit system directory (C:\Windows\System\)
+    4. The Windows Directory (C:\Windows\)
+    5. The current directory
+    6. The directories listed in %PATH% environment variable.
+
+Once found, the search stops.
+
+This process is highly customizable. For instance:
+
+    1. DLL Redirection (.local)
+    2. Side-by-size components
+    3. add to %PATH%
+    4. AddDllDirectory
+    5. LoadLibraryEx Flags
+
+Do some googling on these.
+
+
+Map the DLL into Memory
+-----------------------
+
+The loader needs to
+
+    1. Open the DLL file and read the image size
+    2. Allocate a contiguous, page aligned block of memory of that size
+    3. Copy the contents of each section into the appropriate area of that block of memory
+
+Relocation
+----------
+DLLs have a preferred base address. If the dll does not get loaded into its preferred base
+address then the pointers in the dll will be pointing to random slots of memory.
+Relocation fixes this.
+
+
+
+Load Dependencies and Bind Imports
+-----------------------------------
+For each DLL dependency:
+    1. load the DLL
+    2. Get the required imports to fill out the function pointer tables.
+
+
+Initialize the DLL
+---------------------
+
+DLLs have an optional entry point where it can do some initialization. Conventially
+this is called `DllMain` but can be called anything.
+
+Here is the signature.
+
+.. code-block:: C++
+
+    BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved);
+
+Where:
+
+    - instance = the DLL handle returned from LoadLibrary
+    - reason = indication of why the loaded is calling the entry point
+        - DLL_PROCESS_ATTACH = Called once, when DLL is loaded
+        - DLL_PROCESS_DETACH = Called once, when DLL is unloaded
+        - DLL_THREAD_ATTACH = Called each time a thread starts running
+        - DLL_THREAD_DETACH = Called each time a thread stops running
+    - reserve = more information for process attach or detach.
+
+Returns True or False depending on load success.
+
+Calls to DllMain are syncronized by a gloval lock called the Loader Lock. So
+only 1 thread can be initializing a dll at one time.
+
+
+
+Debugging DLL Load Failures
+-----------------------------
+
+What if Hello.dll did not exist? Then you would get an error.
+How do you debug this?
+
+One way is to use a program called gflags.
+
+Here I deleted Hello.dll. Now when we run a program that uses Hello.dll we get
+and error.
+
+
+.. code-block::powershell
+
+    D:\TestStaticIntoSharedLinking\cmake-build-release-visual-studio\dynamic_lib\test>PrintGreetingImplicityLinking.exe
+
+
+
+Importing
+-----------
+
+We've already seen `__declspec(dllexport)` which is used inside our source files to
+allow other programs access to the public interface. `__declspec(dllimport)` also exists,
+and this is used inside programs that `use` a dll.
+
+For instance, see `NumbersCaller.cpp`.
+
+.. code-block::powershell
+
+    extern "C" __declspec(dllimport) int GetOne();
+    extern "C" __declspec(dllimport) int GetTwo();
+    extern "C" __declspec(dllimport) int GetThree();
+
+The `__declspec(dllimport)` statement tells the compiler than this function
+is going to be imported. This is more efficient because the compiler can
+do things a little differently.
+
+
+Exporting Data
+--------------
+
+You can export variables as well as functions. When you do this you need
+to use __declspec(dllimport).
+
+
+Exporting C++ classes
+-----------------------
+
+This is possible. When you use `__declspec(dllexport)` on a class, rather
+than a function, all the members of the class get exported.
+
+However, You are NOT recommended to do exports on classes. You are too dependent on
+a compiler. This will be hard to debug and will probably do wrong.
 
 
 
